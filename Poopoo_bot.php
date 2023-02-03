@@ -99,7 +99,7 @@ while(true) //無限迴圈,重複觸發
                 $exec = trim($matches[1]);
 		        if($exec)
                 {
-				    		$key = 'af8f8e94-c133-4715-8fee-dc5a0cf33ef1'; //API_key
+				    		$key = '***f8e94-c133-****-8fee-dc5a0cf*****'; //API_key
 		                    $url_cmc = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'; // CoinmarketCap的url
                 		    //$currency = 'BTC,ETH,BNB,SOL,NEAR,FTM,GMT,GST';
 
