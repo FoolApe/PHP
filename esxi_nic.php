@@ -8,7 +8,7 @@
 	$port = '22';
 	$user = 'USER';
 	$pass = 'PASSWD';
-	$token_num = 'CUSTOM_TOKEN_420'; ### jackey666 < MD5加密
+	$token_num = 'CUSTOM_TOKEN_420';
 
 	if ( $token !== $token_num )
 	{
