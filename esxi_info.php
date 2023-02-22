@@ -1,7 +1,7 @@
 <?php
 
 	// VARs
-	$token = $_GET['token']??'';
+	$token = $_GET['token']??''; // php7 以後的語法 , 縮減長判斷式
     $host = $_GET['host']??'';
 	$type = $_GET['type']??'';
 	$port = '22';
