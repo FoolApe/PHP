@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>ESXi Server Info</title>
+	<title>WDP Server Info</title>
     <meta charset="UTF-8">
     <style>
         table {
@@ -9,6 +9,7 @@
             /* border-collapse: collapse; */
             padding: 5px;
             white-space: nowrap; /* 防止自動換行 */
+            margin-top: 10px; /* 與上方分隔的距離 */
         }
 
         td {
@@ -20,8 +21,8 @@
             border: 2px solid black;
         }
         
-        /* 
-        單雙分色,增加可讀性
+        
+        /* 單雙分色,增加可讀性 
         tr:nth-child(even) {background: #CCC}
         tr:nth-child(odd) {background: #FFF} 
         */
@@ -45,7 +46,7 @@
 
             display: inline-block;
             border-radius: 8px; /* 邊角原切 */
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.8); /* 外框陰影 */
+            box-shadow: 0px 8px 10px rgba(0, 0, 0, 0.8); /* 外框陰影 */
             cursor: pointer; /* 滑鼠放在上方時的圖案 */
         }
 
@@ -56,35 +57,27 @@
             border: outset #ADADAD;
         }
 
-        #reverse_btn { /* 術式反轉 */
-            background-color: #FFD306; 
-            color: #000;
-            border: outset #9D9D9D;
-            padding: 10px 20px; 
-            margin: 0px 10px; /* 與旁邊元素分隔的距離 , 上下/左右 */
-            margin-bottom: 10px; /* 與下方分隔的距離 */
-
-            text-align: center;
-            font-size: 20px;
-            font-weight: bold;
-
-            display: inline-block;
-            border-radius: 8px; /* 邊角原切 */
-            /* box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.8);  外框陰影 */
-            cursor: pointer; /* 滑鼠放在上方時的圖案 */
-        }
-
-        #reverse_btn:hover {
-            background-color: #0066CC;
+        /* 排序按鈕 */
+        .asc-btn, .desc-btn {
+            background-color: transparent;
             color: #FFF;
-            border: outset #9D9D9D;
+            font-size: 12px;
+            border: none;
+            box-shadow: 0px 0px 6px rgba(0, 0, 0, 0.3); /* 外框陰影 */
+            cursor: pointer;
+            display: inline-block;
+            position: relative;
+        }
+        
+        .asc-btn:hover, .desc-btn:hover {
+            border: none;
+            position: relative;
         }
 
         label {
             font-size: 20px;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-
             margin-left: 10px;
         }
 
@@ -144,9 +137,59 @@
 
     </style>
     <script src='http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js'></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // 排序按鈕
+        $(document).ready(function() {
+            $('th').each(function(col) {
+                $(this).append('<div class="sort-arrows"><button class="asc-btn">&#9650;</button><button class="desc-btn">&#9660;</button></div>');
+                $(this).find('.asc-btn').click(function() {
+                    sortTable(col, 'asc');
+                });
+                $(this).find('.desc-btn').click(function() {
+                    sortTable(col, 'desc');
+                });
+            });
+
+            function sortTable(col, order) {
+                var rows = $('table').find('tbody > tr').get();
+                rows.sort(function(a, b) {
+                    var A = $(a).children('td').eq(col).text().toUpperCase();
+                    var B = $(b).children('td').eq(col).text().toUpperCase();
+
+                    // 判斷是否為數字或IP，若是則轉換成數字或IP後比較
+                    if (!isNaN(A) && !isNaN(B)) {
+                        A = Number(A);
+                        B = Number(B);
+                    } else if (isValidIP(A) && isValidIP(B)) {
+                        A = parseInt(A.split('.')[3]);
+                        B = parseInt(B.split('.')[3]);
+                    }
+
+                    // 比較大小
+                    if (order == 'asc') {
+                        return (A < B ? -1 : A > B ? 1 : 0);
+                    } else {
+                        return (A > B ? -1 : A < B ? 1 : 0);
+                    }
+                });
+                $.each(rows, function(index, row) {
+                    $('tbody').append(row);
+                });
+                $('th').removeClass('asc desc');
+                $('th').eq(col).addClass(order);
+            }
+
+            // 判斷是否為合法IP
+            function isValidIP(str) {
+                var regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+                return regex.test(str);
+            }
+        });
+    </script>
 </head>
 <body>
-    <img src="標題圖片~">
+    <img src="標題圖片">
     <hr>
 
 	<form method="post" action="">
@@ -157,8 +200,6 @@
         <button type="submit" name="ilo_dx380_button">iLO_DX380</button>
 	</form>
     <hr>
-
-    <button id="reverse_btn">Reverse</button>
 
     <!-- 隱藏/顯示欄位的下拉選單 -->
     <label for="filter">Show columns:</label>
@@ -173,8 +214,12 @@
 			echo '<table id="server_info_table">';
 			echo '<thead class="sticky">';
 			echo '<tr>';
+            echo '<th>FUNCTION</th>';
+            echo '<th>NTNX_CLUSTER</th>';
+            echo '<th>VMWARE_CLUSTER</th>';
             echo '<th>HOSTNAME</th>';
 			echo '<th>IP</th>';
+            echo '<th>CVM</th>';
 			echo '<th>IPMI</th>';
 			echo '<th>SN</th>';
 			echo '<th>VENDOR</th>';
@@ -196,15 +241,22 @@
 			error_reporting(E_ALL);
 			require_once 'DB登入檔';
 
+			// 定義各個 table 名稱
+			// $table_name = 'table名稱';
+
 			// 查詢資料
-			$sql = "SELECT語法~";
+			$sql = "select語法";
 
 			$result = $conn->query($sql);
 
 			while ($row = $result->fetch_assoc()) {
 				echo '<tr>';
+                echo '<td>' . $row['FUNCTION'] . '</td>';
+                echo '<td>' . $row['NTNX_CLUSTER'] . '</td>';
+                echo '<td>' . $row['VMWARE_CLUSTER'] . '</td>';
                 echo '<td>' . $row['HOSTNAME'] . '</td>';
 				echo '<td>' . $row['IP'] . '</td>';
+                echo '<td>' . $row['CVM'] . '</td>';
 				echo '<td>' . $row['IPMI'] . '</td>';
 				echo '<td>' . $row['SN'] . '</td>';
 				echo '<td>' . $row['VENDOR'] . '</td>';
@@ -251,7 +303,7 @@
 			$table_name = 'table名稱';
 
 			// 查詢資料
-			$sql = "SELECT語法";
+			$sql = "select語法";
 			$result = $conn->query($sql);
 
 			while ($row = $result->fetch_assoc()) {
@@ -290,13 +342,13 @@
 
 			ini_set('display_errors', 1);
 			error_reporting(E_ALL);
-			require_once 'DB2登入檔';
+			require_once 'DB登入檔';
 
 			// 定義各個 table 名稱
 			$table_name = 'table名稱';
 
 			// 查詢資料
-			$sql = "SELECT語法";
+			$sql = "select語法";
 			$result = $conn->query($sql);
 
 			while ($row = $result->fetch_assoc()) {
@@ -324,9 +376,9 @@
 			echo '<thead class="sticky">';
 			echo '<tr>';
 			echo '<th>IP</th>';
+            echo '<th>iLO_5</th>';
 			echo '<th>System_ROM</th>';
 			echo '<th>Redundant_System_ROM</th>';
-			echo '<th>iLO_5</th>';
 			echo '<th>NVIDIA_A40</th>';
             echo '<th>HPE_SR932i-p_Gen10+</th>';
             echo '<th>Innovation_Engine_Firmware</th>';
@@ -336,21 +388,21 @@
 
 			ini_set('display_errors', 1);
 			error_reporting(E_ALL);
-			require_once 'DB2登入檔';
+			require_once 'DB登入檔';
 
 			// 定義各個 table 名稱
 			$table_name = 'table名稱';
 
 			// 查詢資料
-			$sql = "SELECT語法";
+			$sql = "select語法";
 			$result = $conn->query($sql);
 
 			while ($row = $result->fetch_assoc()) {
 				echo '<tr>';
 				echo '<td>' . $row['IP'] . '</td>';
+                echo '<td>' . $row['iLO_5'] . '</td>';
                 echo '<td>' . $row['System_ROM'] . '</td>';
 				echo '<td>' . $row['Redundant_System_ROM'] . '</td>';
-				echo '<td>' . $row['iLO_5'] . '</td>';
 				echo '<td>' . $row['NVIDIA_A40'] . '</td>';
 				echo '<td>' . $row['HPE_SR932i-p_Gen10+'] . '</td>';
 				echo '<td>' . $row['Innovation_Engine_Firmware'] . '</td>';
@@ -370,9 +422,9 @@
 			echo '<thead class="sticky">';
 			echo '<tr>';
 			echo '<th>IP</th>';
+            echo '<th>iLO_5</th>';
 			echo '<th>System_ROM</th>';
 			echo '<th>Redundant_System_ROM</th>';
-			echo '<th>iLO_5</th>';
 			echo '<th>HPE_Smart_Array_E208i-p_SR_Gen10</th>';
             echo '<th>HPE_Smart_Array_E208i-a_SR_Gen10</th>';
             echo '<th>HPE_NS204i-p_Gen10+_Boot_Controller</th>';
@@ -389,15 +441,15 @@
 			$table_name = 'table名稱';
 
 			// 查詢資料
-			$sql = "SELECT語法";
+			$sql = "select語法";
 			$result = $conn->query($sql);
 
 			while ($row = $result->fetch_assoc()) {
 				echo '<tr>';
 				echo '<td>' . $row['IP'] . '</td>';
+                echo '<td>' . $row['iLO_5'] . '</td>';
                 echo '<td>' . $row['System_ROM'] . '</td>';
 				echo '<td>' . $row['Redundant_System_ROM'] . '</td>';
-				echo '<td>' . $row['iLO_5'] . '</td>';
 				echo '<td>' . $row['HPE_Smart_Array_E208i-p_SR_Gen10'] . '</td>';
 				echo '<td>' . $row['HPE_Smart_Array_E208i-a_SR_Gen10'] . '</td>';
 				echo '<td>' . $row['HPE_NS204i-p_Gen10+_Boot_Controller'] . '</td>';
@@ -415,17 +467,6 @@
 	?>
 
     <script>
-        /* 反轉術式 */
-        const reverseBtn = document.getElementById('reverse_btn');
-        const tbodyEl = document.querySelector('tbody');
-        reverseBtn.addEventListener('click', () => {
-            const rows = Array.from(tbodyEl.querySelectorAll('tr'));
-            rows.reverse();
-            rows.forEach((row, idx) => {
-                tbodyEl.appendChild(row);
-            });
-        });
-
         /* 搜尋功能 */
         function searchTable() {
             var input, filter, table, tr, td, i, j, txtValue;
